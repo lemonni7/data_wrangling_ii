@@ -62,3 +62,12 @@ nyc_water =
   content("parsed")
 ```
 
+## BRFSS
+
+```{r}
+brfss_2010 =
+  GET("https://chronicdata.cdc.gov/resource/acme-vg9e.csv",
+      query = list("$limit" =5000)) %>%
+  content("parsed")
+```
+
