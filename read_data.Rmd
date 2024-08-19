@@ -33,3 +33,22 @@ table_marj =
 table_marj
 ```
 
+## Star Wars movie info
+
+Data from [here](https://www.imdb.com/list/ls070150896/)
+
+```{r}
+url = "https://www.imdb.com/list/ls070150896/"
+
+swm_html = read_html(url)
+```
+
+Grab elements
+
+```{r}
+title_vec =
+  swm_html %>% 
+  html_nodes(css=) %>% 
+  html_text()
+```
+
