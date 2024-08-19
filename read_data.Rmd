@@ -52,3 +52,13 @@ title_vec =
   html_text()
 ```
 
+## Get some water data
+
+This is coming from API
+
+```{r}
+nyc_water =
+  GET("https://data.cityofnewyork.us/resource/ia2d-e54m.csv") %>% 
+  content("parsed")
+```
+
