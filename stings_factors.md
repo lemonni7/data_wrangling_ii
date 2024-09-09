@@ -376,7 +376,7 @@ rest_inspec %>%
     ## 1 0                21    NA    NA    NA    NA    NA    NA
     ## 2 Bronx         11418  7144  1463   734   743    71   593
     ## 3 Brooklyn      34730 21962  3543  2284  2209   210  1517
-    ## 4 Manhattan     45951 31422  4646  2892  3559   216  2021
+    ## 4 Manhattan     45952 31420  4646  2892  3560   216  2021
     ## 5 Queens        29847 18943  3491  2330  2382   177  1384
     ## 6 Staten Island  4259  3613   533   196   266    19   140
 
@@ -470,3 +470,134 @@ rest_inspec %>%
 ```
 
 <img src="stings_factors_files/figure-gfm/unnamed-chunk-23-1.png" width="90%" />
+
+## Weather
+
+``` r
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USW00022534", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2021-01-01",
+    date_max = "2023-12-31") |>
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USW00022534 = "Molokai_HI",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+
+    ## Registered S3 method overwritten by 'hoardr':
+    ##   method           from
+    ##   print.cache_info httr
+
+    ## using cached file: C:\Users\nrnhh\AppData\Local/R/cache/R/rnoaa/noaa_ghcnd/USW00094728.dly
+
+    ## date created (size, mb): 2024-08-12 09:53:19.868105 (8.651)
+
+    ## file min/max dates: 1869-01-01 / 2024-08-31
+
+    ## using cached file: C:\Users\nrnhh\AppData\Local/R/cache/R/rnoaa/noaa_ghcnd/USW00022534.dly
+
+    ## date created (size, mb): 2024-08-12 09:53:40.632154 (3.919)
+
+    ## file min/max dates: 1949-10-01 / 2024-08-31
+
+    ## using cached file: C:\Users\nrnhh\AppData\Local/R/cache/R/rnoaa/noaa_ghcnd/USS0023B17S.dly
+
+    ## date created (size, mb): 2024-08-12 09:53:47.190077 (1.035)
+
+    ## file min/max dates: 1999-09-01 / 2024-08-31
+
+``` r
+weather_df
+```
+
+    ## # A tibble: 3,285 × 6
+    ##    name           id          date        prcp  tmax  tmin
+    ##    <chr>          <chr>       <date>     <dbl> <dbl> <dbl>
+    ##  1 CentralPark_NY USW00094728 2021-01-01   157   4.4   0.6
+    ##  2 CentralPark_NY USW00094728 2021-01-02    13  10.6   2.2
+    ##  3 CentralPark_NY USW00094728 2021-01-03    56   3.3   1.1
+    ##  4 CentralPark_NY USW00094728 2021-01-04     5   6.1   1.7
+    ##  5 CentralPark_NY USW00094728 2021-01-05     0   5.6   2.2
+    ##  6 CentralPark_NY USW00094728 2021-01-06     0   5     1.1
+    ##  7 CentralPark_NY USW00094728 2021-01-07     0   5    -1  
+    ##  8 CentralPark_NY USW00094728 2021-01-08     0   2.8  -2.7
+    ##  9 CentralPark_NY USW00094728 2021-01-09     0   2.8  -4.3
+    ## 10 CentralPark_NY USW00094728 2021-01-10     0   5    -1.6
+    ## # ℹ 3,275 more rows
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax)) +
+  geom_violin()
+```
+
+    ## Warning: Removed 19 rows containing non-finite values (`stat_ydensity()`).
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-25-1.png" width="90%" />
+
+``` r
+weather_df %>% 
+  mutate(name = fct_relevel(name, "Molokai_HI")) %>% 
+  ggplot(aes(x = name, y = tmax)) +
+  geom_violin()
+```
+
+    ## Warning: Removed 19 rows containing non-finite values (`stat_ydensity()`).
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-26-1.png" width="90%" />
+
+``` r
+weather_df %>% 
+  mutate(name = fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) +
+  geom_violin()
+```
+
+    ## Warning: There was 1 warning in `mutate()`.
+    ## ℹ In argument: `name = fct_reorder(name, tmax)`.
+    ## Caused by warning:
+    ## ! `fct_reorder()` removing 19 missing values.
+    ## ℹ Use `.na_rm = TRUE` to silence this message.
+    ## ℹ Use `.na_rm = FALSE` to preserve NAs.
+
+    ## Warning: Removed 19 rows containing non-finite values (`stat_ydensity()`).
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-27-1.png" width="90%" />
+
+Linear regression
+
+``` r
+weather_df %>% 
+  lm(tmax ~ name, data = .)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = tmax ~ name, data = .)
+    ## 
+    ## Coefficients:
+    ##      (Intercept)    nameMolokai_HI  nameWaterhole_WA  
+    ##            17.87             10.53            -10.31
+
+Waterhole as the reference group, required to be in factor
+
+``` r
+weather_df %>% 
+  mutate(name = fct_relevel(name, "Molokai_HI")) %>% 
+  lm(tmax ~ name, data = .)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = tmax ~ name, data = .)
+    ## 
+    ## Coefficients:
+    ##        (Intercept)  nameCentralPark_NY    nameWaterhole_WA  
+    ##              28.40              -10.53              -20.84
