@@ -98,3 +98,29 @@ string_vec = c(
 str_detect(string_vec, "\\[")
 ```
 
+## Factors
+
+```{r}
+factor_vec = factor(c("male", "male", "female", "female"))
+
+factor_vec
+
+as.numeric(factor_vec)
+```
+
+Relevel
+
+```{r}
+factor_vec = fct_relevel(factor_vec, "male")
+
+factor_vec
+
+as.numeric(factor_vec)
+```
+
+## NSDUH
+
+```{r}
+
+```
+
