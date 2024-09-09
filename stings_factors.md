@@ -265,3 +265,208 @@ data_marj %>%
 ```
 
 <img src="stings_factors_files/figure-gfm/unnamed-chunk-14-1.png" width="90%" />
+
+## Restaurant inspections
+
+``` r
+library(tidyverse)
+library(httr)
+library(jsonlite)
+```
+
+    ## 
+    ## 载入程辑包：'jsonlite'
+
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     flatten
+
+``` r
+get_all_inspections = function(url) {
+  
+  all_inspections = vector("list", length = 0)
+  
+  loop_index = 1
+  chunk_size = 50000
+  DO_NEXT = TRUE
+  
+  while (DO_NEXT) {
+    message("Getting data, page ", loop_index)
+    
+    all_inspections[[loop_index]] = 
+      GET(url,
+          query = list(`$order` = "zipcode",
+                       `$limit` = chunk_size,
+                       `$offset` = as.integer((loop_index - 1) * chunk_size)
+                       )
+          ) %>%
+      content("text") %>%
+      fromJSON() %>%
+      as_tibble()
+    
+    DO_NEXT = dim(all_inspections[[loop_index]])[1] == chunk_size
+    loop_index = loop_index + 1
+  }
+  
+  all_inspections
+  
+}
+
+url = "https://data.cityofnewyork.us/resource/43nn-pn8j.json"
+
+rest_inspec = 
+  get_all_inspections(url) %>%
+  bind_rows() 
+```
+
+    ## Getting data, page 1
+
+    ## Getting data, page 2
+
+    ## Getting data, page 3
+
+    ## Getting data, page 4
+
+    ## Getting data, page 5
+
+``` r
+rest_inspec
+```
+
+    ## # A tibble: 246,929 × 26
+    ##    camis    boro     building street zipcode phone inspection_date critical_flag
+    ##    <chr>    <chr>    <chr>    <chr>  <chr>   <chr> <chr>           <chr>        
+    ##  1 50126672 0        2        SHADY… 08512   6097… 1900-01-01T00:… Not Applicab…
+    ##  2 50132187 Manhatt… NKA      CENTR… 10000   6469… 2024-07-23T00:… Not Critical 
+    ##  3 50147715 Manhatt… 2        W 69T… 10000   3474… 2024-04-23T00:… Critical     
+    ##  4 50132187 Manhatt… NKA      CENTR… 10000   6469… 2023-02-27T00:… Not Critical 
+    ##  5 50147715 Manhatt… 2        W 69T… 10000   3474… 2024-04-23T00:… Critical     
+    ##  6 50147715 Manhatt… 2        W 69T… 10000   3474… 2024-04-23T00:… Critical     
+    ##  7 50132187 Manhatt… NKA      CENTR… 10000   6469… 2023-02-27T00:… Critical     
+    ##  8 50132187 Manhatt… NKA      CENTR… 10000   6469… 2023-02-27T00:… Critical     
+    ##  9 50132187 Manhatt… NKA      CENTR… 10000   6469… 2023-02-27T00:… Not Critical 
+    ## 10 50147715 Manhatt… 2        W 69T… 10000   3474… 2024-04-23T00:… Not Critical 
+    ## # ℹ 246,919 more rows
+    ## # ℹ 18 more variables: record_date <chr>, dba <chr>, cuisine_description <chr>,
+    ## #   action <chr>, violation_code <chr>, violation_description <chr>,
+    ## #   score <chr>, grade <chr>, grade_date <chr>, inspection_type <chr>,
+    ## #   latitude <chr>, longitude <chr>, community_board <chr>,
+    ## #   council_district <chr>, census_tract <chr>, bin <chr>, bbl <chr>, nta <chr>
+
+``` r
+data("rest_inspec")
+```
+
+    ## Warning in data("rest_inspec"): 没有'rest_inspec'这个数据集
+
+``` r
+rest_inspec %>%
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 6 × 8
+    ## # Groups:   boro [6]
+    ##   boro           `NA`     A     B     C     N     P     Z
+    ##   <chr>         <int> <int> <int> <int> <int> <int> <int>
+    ## 1 0                21    NA    NA    NA    NA    NA    NA
+    ## 2 Bronx         11418  7144  1463   734   743    71   593
+    ## 3 Brooklyn      34730 21962  3543  2284  2209   210  1517
+    ## 4 Manhattan     45951 31422  4646  2892  3559   216  2021
+    ## 5 Queens        29847 18943  3491  2330  2382   177  1384
+    ## 6 Staten Island  4259  3613   533   196   266    19   140
+
+``` r
+rest_inspec =
+  rest_inspec %>% 
+  filter(grade %in% c("A", "B", "C"), boro != "Missing") %>% 
+  mutate(boro = str_to_title(boro))
+```
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, "Pizza")) %>% 
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 4 × 3
+    ## # Groups:   boro [4]
+    ##   boro          A     B
+    ##   <chr>     <int> <int>
+    ## 1 Bronx        10    NA
+    ## 2 Brooklyn     18     2
+    ## 3 Manhattan    31     5
+    ## 4 Queens       11     5
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 5 × 4
+    ## # Groups:   boro [5]
+    ##   boro              A     B     C
+    ##   <chr>         <int> <int> <int>
+    ## 1 Bronx           541   153    93
+    ## 2 Brooklyn       1014   177   116
+    ## 3 Manhattan      1065   254    91
+    ## 4 Queens          773   132    74
+    ## 5 Staten Island   206    47    31
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-20-1.png" width="90%" />
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  mutate(boro = fct_infreq(boro)) %>% 
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-21-1.png" width="90%" />
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  mutate(
+    boro = fct_infreq(boro),
+    boro = str_replace(boro, "Manhattan", "The City")) %>% 
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-22-1.png" width="90%" />
+
+``` r
+rest_inspec %>% 
+  filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) %>% 
+  mutate(
+    boro = fct_infreq(boro),
+    boro = fct_recode(boro, "The City" = "Manhattan")) %>% 
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+<img src="stings_factors_files/figure-gfm/unnamed-chunk-23-1.png" width="90%" />
